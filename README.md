@@ -1,9 +1,11 @@
 # OpenAI and Gmail Integration Programs
 
-This repository contains two Python programs:
+This repository contains Python programs for task reporting with Gmail and OpenAI integration:
 
-1. **main.py**: A simple program that generates a friendly email using OpenAI and sends it via Gmail.
-2. **task_reporter.py**: An automated task reporting system that retrieves data from Google Calendar or a CSV file, analyzes it with OpenAI, generates a report, and sends it via email.
+1. **main.py**: Entry point that launches the Task Reporter user interface.
+2. **task_reporter.py**: Orchestrates the application, importing GUI and backend components.
+3. **gui.py**: Contains the Tkinter-based user interface for managing recipient groups and generating/sending reports.
+4. **backend.py**: Handles all backend logic, including Google API authentication, data retrieval, AI analysis, and email sending.
 
 ## Setup
 
@@ -26,8 +28,8 @@ This repository contains two Python programs:
    - Run `py -m pip install -r requirements.txt`
 
 4. **Run the Programs**:
-   - For simple email: `py main.py`
-   - For task reporting: `py task_reporter.py`
+   - Launch the Task Reporter UI: `py main.py`
+   - If you want to run the task reporter directly in non-UI mode: `py task_reporter.py`
      - Choose data source (Calendar or CSV).
      - For CSV, provide the file path (CSV should have columns like 'Task', 'Due Date', etc.).
 
