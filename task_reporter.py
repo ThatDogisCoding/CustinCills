@@ -64,7 +64,7 @@ def analyze_tasks_with_ai(tasks_data, source):
 
     prompt = f"Analyze the following {source} data and generate a structured report on tasks that need to be completed:\n\n{tasks_data}\n\nProvide a summary of upcoming tasks, priorities, and any recommendations."
     
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
