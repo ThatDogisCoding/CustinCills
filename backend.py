@@ -113,3 +113,11 @@ def send_email(service, to, subject, body):
     message_body = {'raw': raw}
     sent_message = service.users().messages().send(userId='me', body=message_body).execute()
     return sent_message.get('id')
+
+
+def logout():
+    """Clear stored Google credentials."""
+    if os.path.exists('token.json'):
+        os.remove('token.json')
+        return True
+    return False

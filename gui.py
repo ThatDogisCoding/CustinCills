@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import os
 from backend import (
     load_groups, save_groups, authenticate_google, get_connected_email,
-    get_calendar_events, read_csv_tasks, analyze_tasks_with_ai, send_email
+    get_calendar_events, read_csv_tasks, analyze_tasks_with_ai, send_email, logout
 )
 
 
@@ -28,11 +29,17 @@ class TaskReporterApp(tk.Tk):
         self.connect_google()
 
     def create_widgets(self):
-        header_frame = tk.Frame(self, pady=10)
+        header_frame = tk.Frame(self, pady=10, bg='#f0f0f0')
         header_frame.pack(fill='x')
 
-        tk.Label(header_frame, text='Task Report Manager', font=('Segoe UI', 18, 'bold')).pack(side='left', padx=20)
-        tk.Label(header_frame, textvariable=self.connected_email, font=('Segoe UI', 10), fg='gray').pack(side='right', padx=20)
+        tk.Label(header_frame, text='Task Report Manager', font=('Segoe UI', 18, 'bold'), bg='#f0f0f0').pack(side='left', padx=20)
+        
+        auth_frame = tk.Frame(header_frame, bg='#f0f0f0')
+        auth_frame.pack(side='right', padx=20)
+        
+        tk.Label(auth_frame, textvariable=self.connected_email, font=('Segoe UI', 10), fg='#0078d4', bg='#f0f0f0').pack(side='left', padx=(0, 10))
+        tk.Button(auth_frame, text='Login', width=8, command=self.login_account).pack(side='left', padx=2)
+        tk.Button(auth_frame, text='Logout', width=8, command=self.logout_account).pack(side='left', padx=2)
 
         content_frame = tk.Frame(self)
         content_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
@@ -101,6 +108,27 @@ class TaskReporterApp(tk.Tk):
         except Exception as exc:
             self.connected_email.set('Not connected')
             messagebox.showwarning('Google Authentication', f'Google login is required for sending reports.\n{exc}')
+
+    def login_account(self):
+        """Explicitly login to Google account."""
+        try:
+            self.gmail_service, self.calendar_service = authenticate_google()
+            connected = get_connected_email(self.gmail_service)
+            self.connected_email.set(f'Connected: {connected}')
+            messagebox.showinfo('Login Successful', f'Logged in as: {connected}')
+        except Exception as exc:
+            self.connected_email.set('Not connected')
+            messagebox.showerror('Login Failed', f'Failed to authenticate:\n{exc}')
+
+    def logout_account(self):
+        """Logout from Google account."""
+        if logout():
+            self.gmail_service = None
+            self.calendar_service = None
+            self.connected_email.set('Not connected')
+            messagebox.showinfo('Logout Successful', 'You have been logged out.')
+        else:
+            messagebox.showinfo('Logout', 'No active session to logout from.')
 
     def refresh_groups(self):
         self.group_listbox.delete(0, tk.END)
