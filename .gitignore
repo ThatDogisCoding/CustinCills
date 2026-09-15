@@ -1,0 +1,19 @@
+# Business report output
+output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment & secrets
+.env
+credentials.json
+token.json
+
+# IDE
+.vscode/
+.idea/
