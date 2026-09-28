@@ -36,7 +36,13 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
 
    Fill in API keys as they become available (Phase 2).
 
-3. **Run Phase 1 CLI**:
+3. **Launch the dashboard UI**:
+
+   ```bash
+   py main.py
+   ```
+
+4. **Run Phase 1 CLI**:
 
    ```bash
    py main.py report info
@@ -50,17 +56,25 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    py -m business_report.cli info
    ```
 
-4. **Run tests**:
+5. **Run tests**:
 
    ```bash
    py -m pytest
    ```
 
+## Legacy task reporter
+
+```bash
+py main.py legacy
+```
+
 ## Project structure
 
 ```
 docs/business_rules.md     Business rules (Phase 1)
+docs/excel_layout.md       Target spreadsheet layout
 src/business_report/
+  ui/app.py                Redline dashboard (default: py main.py)
   config.py                Settings and reporting period
   domain/                  Pydantic models (Member, FreeTrial, etc.)
   services/rules.py        Metric calculation helpers

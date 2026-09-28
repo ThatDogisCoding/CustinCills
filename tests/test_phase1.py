@@ -40,7 +40,37 @@ def test_reporting_period_invalid_end():
         ReportingPeriod(date(2026, 8, 2), date(2026, 7, 27))
 
 
-def test_main_does_not_fallback_to_legacy_task_reporter(monkeypatch):
+def test_main_default_launches_dashboard(monkeypatch):
+    ui_called = {"value": False}
+
+    def fake_run_app():
+        ui_called["value"] = True
+
+    monkeypatch.setattr("business_report.ui.app.run_app", fake_run_app)
+    monkeypatch.setattr(sys, "argv", ["main"])
+
+    main.main()
+    assert ui_called["value"]
+
+
+def test_main_report_subcommand(monkeypatch):
+    report_calls = {"argv": None}
+
+    def fake_report_main(argv=None):
+        report_calls["argv"] = argv
+        return 0
+
+    monkeypatch.setattr("business_report.cli.main", fake_report_main)
+    monkeypatch.setattr(sys, "argv", ["main", "report", "info"])
+
+    with pytest.raises(SystemExit) as exc:
+        main.main()
+
+    assert exc.value.code == 0
+    assert report_calls["argv"] == ["info"]
+
+
+def test_main_legacy_subcommand(monkeypatch):
     legacy_called = {"value": False}
 
     def fake_legacy_main():
@@ -49,19 +79,7 @@ def test_main_does_not_fallback_to_legacy_task_reporter(monkeypatch):
     fake_legacy_module = types.ModuleType("task_reporter")
     fake_legacy_module.main = fake_legacy_main
     monkeypatch.setitem(sys.modules, "task_reporter", fake_legacy_module)
+    monkeypatch.setattr(sys, "argv", ["main", "legacy"])
 
-    report_calls = {"argv": None}
-
-    def fake_report_main(argv=None):
-        report_calls["argv"] = argv
-        return 0
-
-    monkeypatch.setattr("business_report.cli.main", fake_report_main)
-    monkeypatch.setattr(sys, "argv", ["main"])
-
-    with pytest.raises(SystemExit) as exc:
-        main.main()
-
-    assert exc.value.code == 0
-    assert not legacy_called["value"]
-    assert report_calls["argv"] == []
+    main.main()
+    assert legacy_called["value"]
