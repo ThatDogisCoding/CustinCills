@@ -36,13 +36,23 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
 
    Fill in API keys as they become available (Phase 2).
 
-3. **Launch the dashboard UI**:
+3. **Enable the Playwright browser session** (optional):
+
+   ```bash
+   py -m pip install -e ".[browser]"
+   py -m playwright install chromium
+   ```
+
+   The browser automation window currently starts and stops Chromium on a blank
+   tab. Source navigation and data collection workflows are not implemented yet.
+
+4. **Launch the dashboard UI**:
 
    ```bash
    py main.py
    ```
 
-4. **Run Phase 1 CLI**:
+5. **Run Phase 1 CLI**:
 
    ```bash
    py main.py report info
@@ -56,7 +66,7 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    py -m business_report.cli info
    ```
 
-5. **Run tests**:
+6. **Run tests**:
 
    ```bash
    py -m pytest

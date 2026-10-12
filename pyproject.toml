@@ -37,6 +37,9 @@ full = [
     "phonenumbers>=8.13",
     "python-dateutil>=2.9",
 ]
+browser = [
+    "playwright>=1.40",
+]
 
 [project.scripts]
 business-report = "business_report.cli:main"

@@ -12,9 +12,19 @@ from tkinter import filedialog, messagebox, ttk
 
 from dotenv import load_dotenv
 
+try:
+    from PIL import Image, ImageTk  # type: ignore[import-untyped]
+except ImportError:  # Pillow not installed — fall back to native PhotoImage
+    Image = None  # type: ignore[assignment]
+    ImageTk = None  # type: ignore[assignment]
+
 from business_report.config import ReportingPeriod, get_settings
+from business_report.ui.browser_automation import BrowserAutomationWindow
 from business_report.ui.demo_metrics import display_value, metrics_for_period
 from business_report.ui.week_list import WeekListEntry, recent_weeks
+
+# Resolve the project assets directory (…/assets relative to repo root)
+_ASSETS_DIR = Path(__file__).resolve().parents[3] / "assets"
 
 # Brand palette (from Redline mockup)
 COLOR_BG = "#E8E8E8"
@@ -53,6 +63,9 @@ class RedlineDashboardApp(tk.Tk):
         self._user_display = os.getenv("APP_USER_NAME", "John Doe")
         self._user_initials = self._initials(self._user_display)
 
+        # Load browser automation icon
+        self._browser_icon = self._load_icon("browser_icon.png", size=(28, 28))
+
         self._build_header()
         self._build_body()
         self.select_week(0)
@@ -65,6 +78,25 @@ class RedlineDashboardApp(tk.Tk):
         if len(parts) == 1:
             return parts[0][:2].upper()
         return (parts[0][0] + parts[-1][0]).upper()
+
+    def _load_icon(
+        self, filename: str, *, size: tuple[int, int] = (24, 24)
+    ) -> tk.PhotoImage | None:
+        """Load an icon from the assets directory, resized to *size*.
+
+        Uses Pillow when available for proper resizing and transparency.
+        Falls back to native ``tk.PhotoImage`` (no resize) or ``None``.
+        """
+        path = _ASSETS_DIR / filename
+        if not path.is_file():
+            return None
+        try:
+            if Image is not None and ImageTk is not None:
+                img = Image.open(path).resize(size, Image.LANCZOS)
+                return ImageTk.PhotoImage(img)
+            return tk.PhotoImage(file=str(path))
+        except Exception:
+            return None
 
     def _build_header(self) -> None:
         header = tk.Frame(self, bg=COLOR_BG, pady=16)
@@ -120,6 +152,30 @@ class RedlineDashboardApp(tk.Tk):
             fg=COLOR_MUTED,
             bg=COLOR_BG,
         ).pack(side="left", padx=(0, 8))
+
+        # Browser Automation icon button
+        if self._browser_icon is not None:
+            browser_btn = tk.Button(
+                user,
+                image=self._browser_icon,
+                bg=COLOR_BG,
+                bd=0,
+                cursor="hand2",
+                command=self._on_browser_automation,
+            )
+        else:
+            browser_btn = tk.Button(
+                user,
+                text="🌐",
+                font=(FONT, 14),
+                fg=COLOR_MUTED,
+                bg=COLOR_BG,
+                bd=0,
+                cursor="hand2",
+                command=self._on_browser_automation,
+            )
+        browser_btn.pack(side="left", padx=(0, 6))
+
         tk.Button(
             user,
             text="⚙",
@@ -445,6 +501,19 @@ class RedlineDashboardApp(tk.Tk):
             "API credentials are configured in your .env file.\n"
             "Set APP_USER_NAME to change the displayed profile name.",
         )
+
+    def _on_browser_automation(self) -> None:
+        """Open the browser automation popup window."""
+        # Prevent opening multiple instances
+        if hasattr(self, "_browser_window") and self._browser_window is not None:
+            try:
+                self._browser_window.lift()
+                self._browser_window.focus_force()
+                return
+            except tk.TclError:
+                # Window was closed / destroyed
+                self._browser_window = None
+        self._browser_window = BrowserAutomationWindow(self)
 
     @staticmethod
     def _open_path(path: Path) -> None:

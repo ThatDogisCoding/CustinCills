@@ -4,9 +4,13 @@ pydantic-settings>=2.0
 python-dotenv>=1.0
 email-validator>=2.0
 tzdata>=2024.1
+Pillow>=10.0
 
 # Development
 pytest>=8.0
+
+# Phase 2.5 — Browser automation
+playwright>=1.40
 
 # Phase 2+ (uncomment as implemented)
 # httpx>=0.27
@@ -16,4 +20,3 @@ pytest>=8.0
 # openpyxl>=3.1
 # rapidfuzz>=3.0
 # phonenumbers>=8.13
-
