@@ -1,4 +1,4 @@
-"""Browser Automation window for Phase 2.5 — Playwright-based data collection."""
+"""Browser automation window for testing Mindbody staff login with Playwright."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import tkinter as tk
 from queue import Empty
 from tkinter import ttk
 
-from business_report.services.browser_session import BrowserSession
+from business_report.config import get_settings
+from business_report.services.browser_session import MindbodyLoginSession
 
 # Re-use brand palette from the main app
 COLOR_BG = "#E8E8E8"
@@ -16,7 +17,6 @@ COLOR_RED_ACTIVE = "#C41230"
 COLOR_TEXT = "#1A1A1A"
 COLOR_MUTED = "#6B7280"
 COLOR_BORDER = "#D1D5DB"
-COLOR_CARD = "#F3F4F6"
 COLOR_GREEN = "#16A34A"
 COLOR_AMBER = "#D97706"
 FONT = "Segoe UI"
@@ -30,7 +30,7 @@ class BrowserAutomationWindow(tk.Toplevel):
 
     def __init__(self, parent: tk.Tk) -> None:
         super().__init__(parent)
-        self.title("Browser Automation — Data Collection")
+        self.title("Browser Automation — Mindbody Login Test")
         self.geometry(f"{self.WIDTH}x{self.HEIGHT}")
         self.minsize(700, 520)
         self.configure(bg=COLOR_BG)
@@ -40,7 +40,7 @@ class BrowserAutomationWindow(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
 
-        self._session: BrowserSession | None = None
+        self._session: MindbodyLoginSession | None = None
         self._poll_after_id: str | None = None
         self._close_requested = False
         self._session_failed = False
@@ -83,7 +83,7 @@ class BrowserAutomationWindow(tk.Toplevel):
 
         tk.Label(
             title_block,
-            text="Start and stop a Playwright browser session. Site navigation is not configured yet.",
+            text="Test the Mindbody staff login with Playwright.",
             font=(FONT, 10),
             fg=COLOR_MUTED,
             bg=COLOR_PANEL,
@@ -115,57 +115,26 @@ class BrowserAutomationWindow(tk.Toplevel):
 
         tk.Label(
             panel,
-            text="COLLECTION TARGETS (PREPARATION ONLY)",
+            text="MINDBODY LOGIN TARGET",
             font=(FONT, 10, "bold"),
             fg=COLOR_TEXT,
             bg=COLOR_PANEL,
             anchor="w",
         ).pack(fill="x", pady=(0, 12))
 
-        # ── Target cards row ──
-        cards_row = tk.Frame(panel, bg=COLOR_PANEL)
-        cards_row.pack(fill="x")
-        cards_row.columnconfigure(0, weight=1)
-        cards_row.columnconfigure(1, weight=1)
-        cards_row.columnconfigure(2, weight=1)
-
-        self.source_vars: dict[str, tk.BooleanVar] = {}
-        sources = [
-            ("Mindbody", "Members, terminations, new joins, follow-ups"),
-            ("GoHighLevel", "Free trials: scheduled, showed, sold"),
-            ("Axle", "At-risk members, comments, follow-up logs"),
-        ]
-        for col, (name, desc) in enumerate(sources):
-            card = self._source_card(cards_row, name, desc)
-            card.grid(
-                row=0,
-                column=col,
-                sticky="nsew",
-                padx=(0 if col == 0 else 8, 0),
-            )
-
-        # ── Action row ──
-        action_row = tk.Frame(panel, bg=COLOR_PANEL)
-        action_row.pack(fill="x", pady=(16, 0))
-
         tk.Label(
-            action_row,
-            text="Headless mode:",
+            panel,
+            text="Check that the Mindbody staff credentials in .env can sign in.",
             font=(FONT, 10),
             fg=COLOR_MUTED,
             bg=COLOR_PANEL,
-        ).pack(side="left")
-
-        self.headless_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            action_row,
-            variable=self.headless_var,
-        ).pack(side="left", padx=(6, 20))
+            anchor="w",
+        ).pack(fill="x", pady=(0, 12))
 
         self.run_btn = tk.Button(
-            action_row,
-            text="▶  Start Browser",
-            font=(FONT, 11, "bold"),
+            panel,
+            text="▶  TEST MINDBODY LOGIN",
+            font=(FONT, 13, "bold"),
             fg="white",
             bg=COLOR_RED,
             activebackground=COLOR_RED_ACTIVE,
@@ -173,13 +142,29 @@ class BrowserAutomationWindow(tk.Toplevel):
             relief="flat",
             cursor="hand2",
             padx=18,
-            pady=8,
+            pady=12,
             command=self._on_run,
         )
-        self.run_btn.pack(side="right")
+        self.run_btn.pack(fill="x", pady=(0, 12))
+
+        options_row = tk.Frame(panel, bg=COLOR_PANEL)
+        options_row.pack(fill="x")
+        tk.Label(
+            options_row,
+            text="Headless mode:",
+            font=(FONT, 10),
+            fg=COLOR_MUTED,
+            bg=COLOR_PANEL,
+        ).pack(side="left")
+
+        self.headless_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            options_row,
+            variable=self.headless_var,
+        ).pack(side="left", padx=(6, 20))
 
         self.stop_btn = tk.Button(
-            action_row,
+            options_row,
             text="■  Stop",
             font=(FONT, 11, "bold"),
             fg="white",
@@ -193,48 +178,7 @@ class BrowserAutomationWindow(tk.Toplevel):
             state="disabled",
             command=self._on_stop,
         )
-        self.stop_btn.pack(side="right", padx=(0, 8))
-
-    def _source_card(self, parent: tk.Frame, name: str, description: str) -> tk.Frame:
-        card = tk.Frame(
-            parent,
-            bg=COLOR_CARD,
-            padx=14,
-            pady=12,
-            highlightthickness=1,
-            highlightbackground=COLOR_BORDER,
-        )
-
-        top = tk.Frame(card, bg=COLOR_CARD)
-        top.pack(fill="x")
-
-        var = tk.BooleanVar(value=True)
-        self.source_vars[name] = var
-
-        cb = ttk.Checkbutton(top, variable=var)
-        cb.pack(side="left")
-
-        tk.Label(
-            top,
-            text=name,
-            font=(FONT, 11, "bold"),
-            fg=COLOR_TEXT,
-            bg=COLOR_CARD,
-            anchor="w",
-        ).pack(side="left", padx=(6, 0))
-
-        tk.Label(
-            card,
-            text=description,
-            font=(FONT, 9),
-            fg=COLOR_MUTED,
-            bg=COLOR_CARD,
-            anchor="w",
-            wraplength=200,
-            justify="left",
-        ).pack(fill="x", pady=(6, 0))
-
-        return card
+        self.stop_btn.pack(side="right")
 
     def _build_log_panel(self) -> None:
         wrapper = tk.Frame(self, bg=COLOR_BG, padx=24, pady=12)
@@ -293,7 +237,7 @@ class BrowserAutomationWindow(tk.Toplevel):
         self.log_text.tag_configure("error", foreground="#EF4444")
         self.log_text.tag_configure("header", foreground=COLOR_RED, font=("Consolas", 10, "bold"))
 
-        self._log("Browser automation ready. Select data sources and click Run Collection.", "info")
+        self._log("Ready. Click TEST MINDBODY LOGIN to check the staff sign-in.", "info")
 
     def _build_footer(self) -> None:
         footer = tk.Frame(self, bg=COLOR_BG, padx=24, pady=(0, 14))
@@ -301,7 +245,7 @@ class BrowserAutomationWindow(tk.Toplevel):
 
         tk.Label(
             footer,
-            text="Playwright lifecycle is active; site navigation and data collection are not yet implemented.",
+            text="Login credentials are read from .env. A visible browser is used by default.",
             font=(FONT, 9),
             fg=COLOR_MUTED,
             bg=COLOR_BG,
@@ -324,12 +268,34 @@ class BrowserAutomationWindow(tk.Toplevel):
     # ── Actions ──────────────────────────────────────────────────────
 
     def _on_run(self) -> None:
-        selected = [name for name, var in self.source_vars.items() if var.get()]
         if self._session is not None and self._session.is_running:
             return
 
+        settings = get_settings()
+        if not all(
+            (
+                settings.mindbody_login_url,
+                settings.mindbody_login_email,
+                settings.mindbody_login_password,
+            )
+        ):
+            self._session_failed = True
+            self._log(
+                "Mindbody login settings are incomplete. Set "
+                "MINDBODY_LOGIN_URL, MINDBODY_LOGIN_EMAIL, and "
+                "MINDBODY_LOGIN_PASSWORD in .env.",
+                "error",
+            )
+            self.status_indicator.configure(text="● Error", fg="#EF4444")
+            return
+
         headless = self.headless_var.get()
-        self._session = BrowserSession(headless=headless)
+        self._session = MindbodyLoginSession(
+            headless=headless,
+            login_url=settings.mindbody_login_url,
+            email=settings.mindbody_login_email,
+            password=settings.mindbody_login_password,
+        )
         self._session_failed = False
         self._stopping = False
         self.run_btn.configure(state="disabled")
@@ -338,12 +304,8 @@ class BrowserAutomationWindow(tk.Toplevel):
 
         self._log("", "info")
         mode = "headless" if headless else "visible"
-        self._log(f"═══ Starting Chromium ({mode}) ═══", "header")
-        if selected:
-            self._log(f"Selected future collection targets: {', '.join(selected)}", "info")
-        else:
-            self._log("No collection targets selected.", "info")
-        self._log("No sites will be opened; the browser starts on a blank tab.", "warning")
+        self._log(f"═══ Testing Mindbody login ({mode}) ═══", "header")
+        self._log("Opening the configured Mindbody sign-in page...", "info")
         self._log("", "info")
         try:
             self._session.start()
@@ -390,10 +352,20 @@ class BrowserAutomationWindow(tk.Toplevel):
             if event.kind == "error":
                 self._session_failed = True
                 self._log(event.message, "error")
-            elif event.kind == "ready":
                 if not self._stopping:
-                    self.status_indicator.configure(text="● Running", fg=COLOR_GREEN)
+                    self.status_indicator.configure(text="● Error", fg="#EF4444")
+            elif event.kind == "done":
+                if not self._stopping:
+                    self.status_indicator.configure(text="● Done", fg=COLOR_GREEN)
                 self._log(event.message, "success")
+            elif event.kind == "verification":
+                if not self._stopping:
+                    self.status_indicator.configure(text="● Verify", fg=COLOR_AMBER)
+                self._log(event.message, "warning")
+            elif event.kind == "working":
+                if not self._stopping:
+                    self.status_indicator.configure(text="● Working", fg=COLOR_AMBER)
+                self._log(event.message, "info")
             elif event.kind == "finished":
                 self._log(event.message, "info")
             else:

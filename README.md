@@ -34,7 +34,9 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    copy .env.example .env
    ```
 
-   Fill in API keys as they become available (Phase 2).
+   Add Mindbody login email and password under `MINDBODY_LOGIN_EMAIL` and
+   `MINDBODY_LOGIN_PASSWORD` in `.env`. Keep these credentials out of source
+   control.
 
 3. **Enable the Playwright browser session** (optional):
 
@@ -43,8 +45,11 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    py -m playwright install chromium
    ```
 
-   The browser automation window currently starts and stops Chromium on a blank
-   tab. Source navigation and data collection workflows are not implemented yet.
+   The browser automation window can test the Mindbody staff login and reports
+   working, done, verification-needed, or error status. Keep login credentials
+   in `.env`; the browser is visible by default so you can complete any
+   verification prompts. The other source integrations and data collection
+   workflows are not implemented yet.
 
 4. **Launch the dashboard UI**:
 

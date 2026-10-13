@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     # Mindbody API (Phase 2)
     mindbody_api_key: str = Field(default="", description="Mindbody API key")
     mindbody_site_id: str = Field(default="", description="Mindbody site ID")
+    mindbody_login_email: str = Field(default="", description="Mindbody staff login email")
+    mindbody_login_password: str = Field(default="", description="Mindbody staff login password")
+    mindbody_login_url: str = Field(
+        default="https://signin.mindbodyonline.com/",
+        description="Mindbody staff sign-in URL",
+    )
 
     # GoHighLevel API (Phase 2)
     ghl_api_token: str = Field(default="", description="GoHighLevel API token")
