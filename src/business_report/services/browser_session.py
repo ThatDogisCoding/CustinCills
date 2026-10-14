@@ -86,6 +86,8 @@ class BrowserSession:
 class MindbodyLoginSession:
     """Use Playwright to test a Mindbody staff login."""
 
+    SITE_PICKER_URL = "https://clients.mindbodyonline.com/launch"
+
     def __init__(
         self,
         *,
@@ -148,10 +150,20 @@ class MindbodyLoginSession:
         try:
             with sync_playwright() as playwright:
                 self._emit("working", "Launching Chromium for Mindbody sign-in...")
-                browser = playwright.chromium.launch(headless=self.headless)
+                browser = playwright.chromium.launch(
+                    headless=self.headless,
+                    args=["--deny-permission-prompts"],
+                )
                 try:
                     page = browser.new_page()
-                    page.goto(self.login_url, wait_until="domcontentloaded", timeout=45_000)
+                    page.goto(
+                        self.SITE_PICKER_URL,
+                        wait_until="domcontentloaded",
+                        timeout=45_000,
+                    )
+                    self._dismiss_location_prompt(page)
+                    self._accept_cookie_banner(page)
+                    self._select_business_site(page)
                     email_input = page.get_by_label(
                         re.compile(r"email or username", re.IGNORECASE)
                     )
@@ -176,6 +188,50 @@ class MindbodyLoginSession:
             )
         finally:
             self._emit("finished", "Mindbody login test ended.")
+
+    def _dismiss_location_prompt(self, page) -> None:
+        # Chromium's permission prompt is browser chrome, not a page dialog.
+        # The launch flag denies it without granting location access.
+        self._emit("working", "Location permission prompts are blocked.")
+
+    def _accept_cookie_banner(self, page) -> None:
+        accept_button = page.get_by_role(
+            "button",
+            name=re.compile(r"^ok$", re.IGNORECASE),
+        )
+        if accept_button.is_visible():
+            accept_button.click()
+            self._emit("working", "Accepted the Mindbody cookie banner.")
+
+    def _select_business_site(self, page) -> None:
+        search_input = page.get_by_placeholder(
+            re.compile(r"Mindbody site name or site ID", re.IGNORECASE)
+        ).first
+        search_input.wait_for(state="visible", timeout=30_000)
+
+        self._emit("working", "Mindbody is asking for a business site; searching Redline...")
+        search_input.fill("Redline")
+        page.get_by_role(
+            "button", name=re.compile(r"^search$", re.IGNORECASE)
+        ).click()
+
+        site_name = page.get_by_text(
+            re.compile(
+                r"0045\s+Redline Athletics\s*[-\u2013\u2014]\s*Bowie",
+                re.IGNORECASE,
+            )
+        ).first
+        site_name.wait_for(state="visible", timeout=30_000)
+        site_row = site_name.locator(
+            "xpath=ancestor::*[.//button[normalize-space()='Select']][1]"
+        )
+        site_row.get_by_role(
+            "button", name=re.compile(r"^select$", re.IGNORECASE)
+        ).click()
+        self._emit(
+            "working",
+            "Selected 0045 Redline Athletics - Bowie; waiting for staff sign-in...",
+        )
 
     def _wait_for_login_result(self, page, email_input, password_input) -> bool:
         challenge_reported = False

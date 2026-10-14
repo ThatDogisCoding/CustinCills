@@ -48,8 +48,10 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    The browser automation window can test the Mindbody staff login and reports
    working, done, verification-needed, or error status. Keep login credentials
    in `.env`; the browser is visible by default so you can complete any
-   verification prompts. The other source integrations and data collection
-   workflows are not implemented yet.
+   verification prompts. The test opens Mindbody's site launcher, searches for
+   Redline, selects **0045 Redline Athletics - Bowie**, and then continues to
+   staff sign-in. The other source integrations and data collection workflows
+   are not implemented yet.
 
 4. **Launch the dashboard UI**:
 

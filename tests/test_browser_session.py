@@ -84,8 +84,12 @@ def test_browser_session_reports_missing_playwright(monkeypatch):
     assert events[1].kind == "finished"
 
 
-def _install_fake_mindbody_playwright(monkeypatch, *, login_succeeds):
+def _install_fake_mindbody_playwright(
+    monkeypatch, *, login_succeeds, site_picker=True, cookie_banner=True
+):
     submitted = {"value": False}
+    picker = {"visible": site_picker, "searched": False, "selected": False}
+    cookies = {"visible": cookie_banner, "dismissed": False}
 
     class FakeLocator:
         def __init__(self, kind):
@@ -98,33 +102,79 @@ def _install_fake_mindbody_playwright(monkeypatch, *, login_succeeds):
         def wait_for(self, *, state, timeout):
             assert state == "visible"
             assert timeout > 0
+            if self.kind == "site_search":
+                assert picker["visible"]
+            if self.kind == "site_name":
+                assert picker["searched"]
+            if self.kind == "email":
+                assert not site_picker or picker["selected"]
 
         def fill(self, value):
             assert value
+            if self.kind == "site_search":
+                assert value == "Redline"
 
         def click(self):
-            submitted["value"] = True
+            if self.kind == "signin":
+                submitted["value"] = True
+            if self.kind == "search":
+                picker["searched"] = True
+            if self.kind == "select":
+                picker["selected"] = True
+                picker["visible"] = False
+            if self.kind == "cookie_ok":
+                cookies["dismissed"] = True
+                cookies["visible"] = False
 
         def is_visible(self):
+            if self.kind == "cookie_ok":
+                return cookies["visible"]
+            if self.kind == "site_search":
+                return picker["visible"]
+            if self.kind == "site_name":
+                return picker["searched"] and not picker["selected"]
             if self.kind == "otp":
                 return False
             if self.kind == "alert":
-                return submitted["value"] and not login_succeeds
+                return submitted["value"] and not login_succeeds and picker["selected"] == site_picker
             if self.kind in ("email", "password", "signin"):
-                return not submitted["value"] or not login_succeeds
+                return (
+                    (not site_picker or picker["selected"])
+                    and (not submitted["value"] or not login_succeeds)
+                )
+            if self.kind == "search":
+                return picker["visible"]
             return False
+
+        def locator(self, selector):
+            assert selector.startswith("xpath=ancestor::")
+            return self
+
+        def get_by_role(self, role, *, name):
+            assert role == "button"
+            assert "select" in name.pattern.lower()
+            return FakeLocator("select")
 
     class FakePage:
         url = "https://signin.mindbodyonline.com/"
 
         def goto(self, url, *, wait_until, timeout):
-            assert url.startswith("https://")
+            assert url == "https://clients.mindbodyonline.com/launch"
             assert wait_until == "domcontentloaded"
             assert timeout > 0
 
         def get_by_label(self, label):
             assert "email or username" in label.pattern.lower()
             return FakeLocator("email")
+
+        def get_by_placeholder(self, placeholder):
+            assert "mindbody site name or site id" in placeholder.pattern.lower()
+            return FakeLocator("site_search")
+
+        def get_by_text(self, text):
+            assert "0045" in text.pattern
+            assert "bowie" in text.pattern.lower()
+            return FakeLocator("site_name")
 
         def locator(self, selector):
             if selector == 'input[type="password"]':
@@ -137,6 +187,12 @@ def _install_fake_mindbody_playwright(monkeypatch, *, login_succeeds):
 
         def get_by_role(self, role, *, name):
             assert role == "button"
+            if "ok" in name.pattern.lower():
+                return FakeLocator("cookie_ok")
+            if "search" in name.pattern.lower():
+                return FakeLocator("search")
+            if "select" in name.pattern.lower():
+                return FakeLocator("select")
             assert "sign in" in name.pattern.lower()
             locator = FakeLocator("signin")
             original_click = locator.click
@@ -157,8 +213,9 @@ def _install_fake_mindbody_playwright(monkeypatch, *, login_succeeds):
             pass
 
     class FakeChromium:
-        def launch(self, *, headless):
+        def launch(self, *, headless, args):
             assert headless is False
+            assert "--deny-permission-prompts" in args
             return FakeBrowser()
 
     class FakePlaywright:
@@ -200,7 +257,50 @@ def test_mindbody_login_session_reports_success_without_logging_credentials(monk
     session.start()
     events = _collect_until(session, "done")
     assert any("succeeded" in event.message for event in events)
+    assert any("Accepted the Mindbody cookie banner" in event.message for event in events)
     assert all("private" not in event.message for event in events)
+
+    session.stop()
+    session._thread.join(timeout=2)
+    assert not session.is_running
+
+
+def test_mindbody_login_session_selects_bowie_site_before_sign_in(monkeypatch):
+    _install_fake_mindbody_playwright(
+        monkeypatch, login_succeeds=True, site_picker=True
+    )
+    session = MindbodyLoginSession(
+        headless=False,
+        login_url="https://signin.mindbodyonline.com/",
+        email="private@example.test",
+        password="private-password",
+    )
+
+    session.start()
+    events = _collect_until(session, "done")
+    messages = [event.message for event in events]
+    assert any("searching Redline" in message for message in messages)
+    assert any("0045 Redline Athletics - Bowie" in message for message in messages)
+
+    session.stop()
+    session._thread.join(timeout=2)
+    assert not session.is_running
+
+
+def test_mindbody_login_session_skips_missing_cookie_banner(monkeypatch):
+    _install_fake_mindbody_playwright(
+        monkeypatch, login_succeeds=True, cookie_banner=False
+    )
+    session = MindbodyLoginSession(
+        headless=False,
+        login_url="https://signin.mindbodyonline.com/",
+        email="private@example.test",
+        password="private-password",
+    )
+
+    session.start()
+    events = _collect_until(session, "done")
+    assert not any("cookie banner" in event.message for event in events)
 
     session.stop()
     session._thread.join(timeout=2)

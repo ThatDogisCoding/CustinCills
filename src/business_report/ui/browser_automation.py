@@ -100,8 +100,8 @@ class BrowserAutomationWindow(tk.Toplevel):
         self.status_indicator.pack(side="right")
 
     def _build_target_panel(self) -> None:
-        wrapper = tk.Frame(self, bg=COLOR_BG, padx=24, pady=(12, 0))
-        wrapper.pack(fill="x")
+        wrapper = tk.Frame(self, bg=COLOR_BG, padx=24)
+        wrapper.pack(fill="x", pady=(12, 0))
 
         panel = tk.Frame(
             wrapper,
@@ -240,8 +240,8 @@ class BrowserAutomationWindow(tk.Toplevel):
         self._log("Ready. Click TEST MINDBODY LOGIN to check the staff sign-in.", "info")
 
     def _build_footer(self) -> None:
-        footer = tk.Frame(self, bg=COLOR_BG, padx=24, pady=(0, 14))
-        footer.pack(fill="x")
+        footer = tk.Frame(self, bg=COLOR_BG, padx=24)
+        footer.pack(fill="x", pady=(0, 14))
 
         tk.Label(
             footer,
