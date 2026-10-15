@@ -50,8 +50,13 @@ See [docs/business_rules.md](docs/business_rules.md) for confirmed business rule
    in `.env`; the browser is visible by default so you can complete any
    verification prompts. The test opens Mindbody's site launcher, searches for
    Redline, selects **0045 Redline Athletics - Bowie**, and then continues to
-   staff sign-in. The other source integrations and data collection workflows
-   are not implemented yet.
+   staff sign-in. It also accepts Mindbody's cookie banner when present and
+   blocks location permission prompts. The other source integrations and data
+   collection workflows are not implemented yet.
+
+   The **TESTING** window also accepts Mindbody and Axle CSV exports plus
+   Booked, Shown, and Sold counts. Click **Create** to save an Excel workbook
+   with a summary sheet and a separate sheet for each uploaded CSV.
 
 4. **Launch the dashboard UI**:
 

@@ -14,6 +14,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "email-validator>=2.0",
     "tzdata>=2024.1",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -32,7 +33,6 @@ full = [
     "sqlalchemy>=2.0",
     "psycopg[binary]>=3.1",
     "alembic>=1.13",
-    "openpyxl>=3.1",
     "rapidfuzz>=3.0",
     "phonenumbers>=8.13",
     "python-dateutil>=2.9",

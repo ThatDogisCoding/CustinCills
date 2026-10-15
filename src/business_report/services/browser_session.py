@@ -195,17 +195,21 @@ class MindbodyLoginSession:
         self._emit("working", "Location permission prompts are blocked.")
 
     def _accept_cookie_banner(self, page) -> None:
-        accept_button = page.get_by_role(
-            "button",
-            name=re.compile(r"^ok$", re.IGNORECASE),
-        )
-        if accept_button.is_visible():
-            accept_button.click()
-            self._emit("working", "Accepted the Mindbody cookie banner.")
+        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+
+        accept_button = page.locator("#truste-consent-button")
+        try:
+            accept_button.wait_for(state="visible", timeout=5_000)
+        except PlaywrightTimeoutError:
+            return
+
+        accept_button.click()
+        accept_button.wait_for(state="hidden", timeout=10_000)
+        self._emit("working", "Accepted the Mindbody cookie banner.")
 
     def _select_business_site(self, page) -> None:
-        search_input = page.get_by_placeholder(
-            re.compile(r"Mindbody site name or site ID", re.IGNORECASE)
+        search_input = page.locator(
+            'input.MuiInputBase-input[aria-invalid="false"][type="text"]'
         ).first
         search_input.wait_for(state="visible", timeout=30_000)
 

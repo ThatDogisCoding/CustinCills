@@ -100,8 +100,13 @@ def _install_fake_mindbody_playwright(
             return self
 
         def wait_for(self, *, state, timeout):
-            assert state == "visible"
+            assert state in ("visible", "hidden")
             assert timeout > 0
+            if self.kind == "cookie_ok":
+                if state == "visible" and not cookies["visible"]:
+                    raise TimeoutError("Cookie button not present")
+                if state == "hidden" and cookies["visible"]:
+                    raise TimeoutError("Cookie banner did not close")
             if self.kind == "site_search":
                 assert picker["visible"]
             if self.kind == "site_name":
@@ -147,6 +152,8 @@ def _install_fake_mindbody_playwright(
             return False
 
         def locator(self, selector):
+            if selector == "#truste-consent-button":
+                return FakeLocator("cookie_ok")
             assert selector.startswith("xpath=ancestor::")
             return self
 
@@ -167,16 +174,16 @@ def _install_fake_mindbody_playwright(
             assert "email or username" in label.pattern.lower()
             return FakeLocator("email")
 
-        def get_by_placeholder(self, placeholder):
-            assert "mindbody site name or site id" in placeholder.pattern.lower()
-            return FakeLocator("site_search")
-
         def get_by_text(self, text):
             assert "0045" in text.pattern
             assert "bowie" in text.pattern.lower()
             return FakeLocator("site_name")
 
         def locator(self, selector):
+            if selector == 'input.MuiInputBase-input[aria-invalid="false"][type="text"]':
+                return FakeLocator("site_search")
+            if selector == "#truste-consent-button":
+                return FakeLocator("cookie_ok")
             if selector == 'input[type="password"]':
                 return FakeLocator("password")
             if selector.startswith('input[autocomplete="one-time-code"]'):
@@ -229,6 +236,7 @@ def _install_fake_mindbody_playwright(
 
     sync_api = types.ModuleType("playwright.sync_api")
     sync_api.Error = RuntimeError
+    sync_api.TimeoutError = TimeoutError
     sync_api.sync_playwright = FakePlaywright
     monkeypatch.setitem(sys.modules, "playwright", types.ModuleType("playwright"))
     monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_api)
